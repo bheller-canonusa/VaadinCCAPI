@@ -3,20 +3,29 @@ package com.canon.ccapi.rest.consumer;
 import com.canon.ccapi.rest.constants.Constants;
 import com.canon.ccapi.rest.interfaces.*;
 
+import com.canon.ccapi.rest.model.ErrorMessage;
+import com.canon.ccapi.rest.returnobjects.RegularCCAPIReturnObject;
 import com.canon.ccapi.rest.util.ReflectionHelper;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.List;
+
+
 
 
 @Scope("singleton")
@@ -24,6 +33,8 @@ import java.util.List;
 public class RestConsumer {
 
     private final WebClient webClient2;
+
+    private static final Logger logger = LoggerFactory.getLogger(RestConsumer.class);
 
     @Autowired
     private ObjectMapper mapper;
@@ -55,6 +66,7 @@ public class RestConsumer {
 
         try {
             json =  mapper.writeValueAsString(c);
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -63,7 +75,12 @@ public class RestConsumer {
         return json;
     }
 
-    public <T extends CCAPIPojos> T makeCall(CCAPIPojos makecallobject) {
+
+
+    public RegularCCAPIReturnObject makeCall(CCAPIPojos makecallobject) {
+
+        logger.info("Rest call using POJO-->"+makecallobject.getClass()+"<--");
+
         Class<? extends CCAPIPojos> clazz = makecallobject.getClass();
         RestVerbs verb = clazz.getAnnotation(RestCommand.class).restverb();
         String command = clazz.getAnnotation(RestCommand.class).restcommand();
@@ -77,56 +94,75 @@ public class RestConsumer {
         }
 
 
-        switch (verb){
-            case GET:
+        try {
 
-                if (type == ResponseTypes.IMAGEJPEG){
-                    byte[] image = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).retrieve().toEntity(byte[].class).block().getBody();
-                    Object o = null;
-                    try {
-                        o = clazz.getConstructor().newInstance();
-                    }
-                    catch (Exception e){
-                        e.printStackTrace();
-                    }
+            switch (verb) {
+                case GET:
 
-                    Field f = ReflectionHelper.getFieldAtAnnotation(o,ImageTag.class);
-                    if (f!=null){
-                        try{
-                            f.set(o,image);
-                        }
-                        catch (Exception e){
+                    if (type == ResponseTypes.IMAGEJPEG) {
+                        byte[] image = null;
+
+
+                        image = webClient2.get().uri(command).accept(MediaType.APPLICATION_JSON).retrieve()
+                                .toEntity(byte[].class).block().getBody();
+
+
+                        Object o = null;
+                        try {
+                            o = clazz.getConstructor().newInstance();
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
+
+                        Field f = ReflectionHelper.getFieldAtAnnotation(o, ImageTag.class);
+                        if (f != null) {
+                            try {
+                                f.set(o, image);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            throw new RuntimeException("No Image Annotation Present");
+                        }
+
+
+                        return new RegularCCAPIReturnObject(o);
+
+
+                    } else {
+
+                        return new RegularCCAPIReturnObject(webClient2.get().uri(command).accept(MediaType.APPLICATION_JSON).retrieve()
+                                .toEntity(clazz).block().getBody());
+
                     }
-                    else{
-                        throw new RuntimeException("No Image Annotation Present");
-                    }
 
+                case POST:
 
-                    try {
-                       //return Arrays.asList(Class.forName(clazz.getName()).cast(o));
-                        return (T) Class.forName(clazz.getName()).cast(o);
-                    }
-                    catch (Exception e){
-                        e.printStackTrace();
-                    }
+                    return new RegularCCAPIReturnObject(webClient2.post().uri(command).contentType(MediaType.APPLICATION_JSON).bodyValue(postbodyvalues).retrieve()
+                            .toEntity(clazz).block().getBody());
 
+                default:
+                    throw new RuntimeException("unknown verb");
+            }
 
-                }
-                else { //standard JSON body
-                    return (T) webClient2.get().uri(command).accept(MediaType.APPLICATION_JSON).retrieve().toEntity(clazz).block().getBody();
-                }
-
-            case POST:
-                //post may have {} as a body
-
-                return (T) webClient2.post().uri(command).contentType(MediaType.APPLICATION_JSON).bodyValue(postbodyvalues).retrieve().toEntity(clazz).block().getBody();
-
-            default:
-                throw new RuntimeException("unknown verb");
         }
+        catch(WebClientResponseException.ServiceUnavailable e){
+            ErrorMessage errormessage= null;
+            try {
+                errormessage= mapper.readValue(e.getResponseBodyAsString(), ErrorMessage.class);
+            }
+            catch (JsonProcessingException ee){
+                ee.printStackTrace();
+            }
+
+            return new RegularCCAPIReturnObject(errormessage);
+        }
+
+
+
+
     }
+
 
 /*
     public List<Battery> getStorageAsJson(){

@@ -2,6 +2,7 @@ package com.canon.ccapi;
 
 import com.canon.ccapi.rest.consumer.RestConsumer;
 import com.canon.ccapi.rest.interfaces.CCAPIPojos;
+import com.canon.ccapi.rest.model.ErrorMessage;
 import com.canon.ccapi.rest.model.liveview.LiveViewImage;
 import com.canon.ccapi.rest.model.liveview.LiveViewToggle;
 import com.canon.ccapi.rest.model.status.BatteryStatus;
@@ -84,8 +85,10 @@ public class CCAPIRestClientApplicationTests {
      //   }
 */
 
-        LiveViewImage test = new LiveViewImage();
-        LiveViewImage out = restconsume.makeCall(test);
+       // LiveViewImage test = new LiveViewImage();
+        BatteryStatus b = new BatteryStatus();
+        //BatteryStatus bb  = restconsume.makeCall(b).getRegular();
+        LiveViewImage out = restconsume.makeCall(b).getRegular();
 
         System.out.println(out.getMessage());
       //  System.out.println(restconsume.makeCall(new LiveViewToggle("off","off")));

@@ -1,0 +1,73 @@
+  // ResponseEntity<byte[]> r =
+                            //ClientResponse rr  =webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).exchange().block();
+           /*       image = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).exchangeToMono(r->{
+
+
+                            Mono<byte[]> mm =r.bodyToMono(byte[].class);
+                           return mm;
+
+
+                    }).block();*/
+
+
+                            //.toEntity(byte[].class).block();
+
+                   // image = rr.toEntity(byte[].class);//.getBody();
+                   // image = rr.bodyToMono(byte[].class).block();
+
+                    //  try {
+                      //  image = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).exchangeToMono(
+                        //         clientResponse -> {
+
+                        //         }).log(makecallobject.getClass().getName()).block();
+
+
+                 //   webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).exchangeToMono(f->{
+                 //               f.bodyToMono()
+
+                 //           }).log(makecallobject.getClass().getName())
+
+                  /*  try {
+                        image = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).retrieve().toEntity(byte[].class).block().getBody();
+                    }
+                    catch (WebClientResponseException.ServiceUnavailable e){
+                        System.out.println("dfd--"+e.getResponseBodyAsString());
+                    }*/
+//Mono.error(new Non200ReturnException(clientReponse.bodyToMono(ErrorMessage.class)))
+           /*     try {
+                    image = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).retrieve()
+                            .onStatus(HttpStatus::is5xxServerError, clientReponse -> {
+                               clientReponse.
+                            }).toEntity(byte[].class).block().getBody();
+                }
+                catch (Non200ReturnException e){
+
+                    System.out.println("dfd--"+e.getMessage());
+                }*/
+
+              /*    Mono mm=  webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).exchangeToMono(clientResponse -> {
+
+                        if (clientResponse.statusCode().is5xxServerError()){
+                            return clientResponse.bodyToMono(ErrorMessage.class);
+                        }
+                        return clientResponse.bodyToMono(byte[].class);
+
+                    });
+
+                 Object kk = mm.block();
+                 System.out.println(kk);*/
+/*
+                    WebClient.ResponseSpec ss;
+                    try {
+                        image = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).retrieve()
+                                .onStatus(HttpStatus::is5xxServerError, clientReponse -> {
+                                    return Mono.error(new Non200ReturnException(clientReponse.bodyToMono(ErrorMessage.class)));//.bodyToMono(ErrorMessage.class)));
+                                   // return clientReponse.createException().flatMap(r->r.getResponseBodyAsString()).
+                                }).toEntity(byte[].class).block().getBody();
+                    }
+                    catch (Non200ReturnException e){
+                        ResponseEntity oo = (ResponseEntity) e.getMonoBody().block();
+                        System.out.println(oo.getBody());
+                    }*/
+
+                    //Mono mm = webClient2.get().uri(command).accept(MediaType.IMAGE_JPEG).retrieve().

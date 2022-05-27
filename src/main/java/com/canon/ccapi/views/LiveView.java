@@ -99,7 +99,7 @@ public class LiveView extends VerticalLayout {
 
         LiveViewImage test = new LiveViewImage();
 
-        LiveViewImage out = myrestconsumer.makeCall(test);
+         LiveViewImage out = myrestconsumer.makeCall(test).getRegular();
 
         ImageReloader im = new ImageReloader(UI.getCurrent(), this, myrestconsumer);
 
@@ -187,7 +187,7 @@ public class LiveView extends VerticalLayout {
             while (flag.get()) {
 
                 try {
-                    LiveViewImage im = myrestconsumer.makeCall(new LiveViewImage());
+                    LiveViewImage im = myrestconsumer.makeCall(new LiveViewImage()).getRegular();
                     Thread.sleep(250);
                     byte[] b = im.getMyimage();
                     StreamResource streamresource = new StreamResource("isr", new InputStreamFactory() {
