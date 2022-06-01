@@ -7,37 +7,24 @@ import reactor.core.publisher.Mono;
 
 public class Non200ReturnException extends RuntimeException {
 
-    private String message;
-    private Mono body;
+
+    private ErrorMessage error;
+    private String errorcode;
 
     public Non200ReturnException(){
         System.out.println("dfg");
     }
 
-    public Non200ReturnException(String s){
-        this.message=s;
+    public Non200ReturnException(ErrorMessage e){
+        this.error=e;errorcode=null;
     }
 
-    public String getMessage(){return message;}
-
-    public Mono getMonoBody(){
-        return body;
+    public Non200ReturnException(ErrorMessage e,String ec){
+        this.error=e;errorcode=ec;
     }
 
-    public Non200ReturnException(Mono m){
-        this.body=m;
+    public String getErrorcode(){return errorcode;}
 
-        //Object mm = m.block();
-
-        //m.subscribe(v->System.out.println(v),e->System.out.println(e),()->System.out.println("completed without value"));
-
-       //m.log().subscribe(System.out::println);
-
-
-
-      // System.out.println("sdf-->"+mm);
-
-    }
-
+    public ErrorMessage getErrorMessage(){return error;}
 
 }

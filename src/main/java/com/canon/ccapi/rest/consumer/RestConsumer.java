@@ -1,6 +1,7 @@
 package com.canon.ccapi.rest.consumer;
 
 import com.canon.ccapi.rest.constants.Constants;
+import com.canon.ccapi.rest.exceptions.Non200ReturnException;
 import com.canon.ccapi.rest.interfaces.*;
 
 import com.canon.ccapi.rest.model.ErrorMessage;
@@ -14,7 +15,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -32,9 +36,13 @@ import java.lang.reflect.Field;
 @Service
 public class RestConsumer {
 
+    @Value("${restconsumer.debug}")
+    private Boolean debug;
+
     private final WebClient webClient2;
 
     private static final Logger logger = LoggerFactory.getLogger(RestConsumer.class);
+
 
     @Autowired
     private ObjectMapper mapper;
@@ -79,7 +87,10 @@ public class RestConsumer {
 
     public RegularCCAPIReturnObject makeCall(CCAPIPojos makecallobject) {
 
-        logger.info("Rest call using POJO-->"+makecallobject.getClass()+"<--");
+
+        if (debug) {
+            logger.info("Rest call using POJO-->" + makecallobject.getClass() + "<--");
+        }
 
         Class<? extends CCAPIPojos> clazz = makecallobject.getClass();
         RestVerbs verb = clazz.getAnnotation(RestCommand.class).restverb();
@@ -152,10 +163,10 @@ public class RestConsumer {
                 errormessage= mapper.readValue(e.getResponseBodyAsString(), ErrorMessage.class);
             }
             catch (JsonProcessingException ee){
-                ee.printStackTrace();
+               logger.error("jsonprocessing->",ee);
             }
 
-            return new RegularCCAPIReturnObject(errormessage);
+            throw new Non200ReturnException(errormessage);
         }
 
 

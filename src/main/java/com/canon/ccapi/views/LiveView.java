@@ -1,8 +1,11 @@
 package com.canon.ccapi.views;
 
 import com.canon.ccapi.rest.consumer.RestConsumer;
+import com.canon.ccapi.rest.exceptions.Non200ReturnException;
+import com.canon.ccapi.rest.model.ErrorMessage;
 import com.canon.ccapi.rest.model.liveview.LiveViewImage;
 import com.canon.ccapi.rest.model.liveview.LiveViewToggle;
+import com.canon.ccapi.rest.model.shootingcontrol.StillImageCapture;
 import com.canon.ccapi.views.util.VaadinUtils;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Component;
@@ -14,6 +17,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.InputStreamFactory;
@@ -36,9 +40,13 @@ public class LiveView extends VerticalLayout {
 
     @Autowired
     private RestConsumer myrestconsumer;
-    private Button liveviewbutton;
+    private Button liveviewbutton,captureimage;
     private ImageReloader irl;
     private ComboBox<String> sizeofimage,displayonoff;
+
+    private RadioButtonGroup<String> radiogroupaf;
+
+    private VerticalLayout vcapturelayout;
 
     private Boolean liveviewstart;
 
@@ -54,16 +62,34 @@ public class LiveView extends VerticalLayout {
 
         createButtons();
         createDropDowns();
+        createRadioButton();
+
+        vcapturelayout = new VerticalLayout();
+        vcapturelayout.add(radiogroupaf,captureimage);
+        vcapturelayout.setHorizontalComponentAlignment(Alignment.BASELINE);
 
 
         HorizontalLayout hl = new HorizontalLayout();
-        hl.add(liveviewbutton,sizeofimage,displayonoff);
-        hl.setVerticalComponentAlignment(Alignment.END,liveviewbutton,sizeofimage,displayonoff);
+        hl.add(liveviewbutton,vcapturelayout,sizeofimage,displayonoff);
+        hl.setSpacing(true);
+        hl.setVerticalComponentAlignment(Alignment.END,liveviewbutton,vcapturelayout,sizeofimage,displayonoff);
         add(hl);
 
         add(liveviewimage);
 
     }
+
+
+    private void createRadioButton(){
+        radiogroupaf = new RadioButtonGroup<>();
+        VaadinUtils.createRadioGroup(radiogroupaf,new StillImageCapture(),"af");
+        radiogroupaf.setLabel("AF");
+
+
+    }
+
+    public Boolean getLiveViewState(){return liveviewstart;}
+    public void setLiveViewState(Boolean b){liveviewstart = b;}
 
     private void createDropDowns(){
         sizeofimage = new ComboBox<>("Size of Image");
@@ -96,7 +122,6 @@ public class LiveView extends VerticalLayout {
 
     private Boolean getCurrentLiveViewState() {
 
-
         LiveViewImage test = new LiveViewImage();
 
          LiveViewImage out = myrestconsumer.makeCall(test).getRegular();
@@ -122,6 +147,7 @@ public class LiveView extends VerticalLayout {
                 try {
                     myrestconsumer.makeCall(new LiveViewToggle((sizeofimage.getValue()==null)?"small":displayonoff.getValue(),"on"));
                 } catch (Exception ee) {
+                    Notification.show("General Error, See Logs");
                     ee.printStackTrace();
                 }
 
@@ -137,10 +163,27 @@ public class LiveView extends VerticalLayout {
                 try {
                     myrestconsumer.makeCall(new LiveViewToggle("off", (displayonoff.getValue()==null)?"off":displayonoff.getValue()));
                 } catch (Exception ee) {
+                    Notification.show("General Error, See Logs");
                     ee.printStackTrace();
                 }
                 irl.endLiveView();
                 liveviewstart = false;
+            }
+
+        });
+
+
+
+        captureimage = new Button("Capture Image");
+
+        captureimage.addClickListener(c->{
+
+            try{
+                myrestconsumer.makeCall(new StillImageCapture(true));
+            }
+            catch (Non200ReturnException ee){
+                ErrorMessage em = ee.getErrorMessage();
+                Notification.show("ERROR: "+em.getMessage());
             }
 
         });
@@ -203,6 +246,15 @@ public class LiveView extends VerticalLayout {
                     });
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                }
+                catch(Non200ReturnException e){
+                    ErrorMessage em = e.getErrorMessage();
+                    ui.access(()->{
+                       Notification.show("ERROR: "+em.getMessage());
+                       view.liveviewbutton.setText("Start Live View");
+                       view.setLiveViewState(false);
+                    });
+                    endLiveView();
                 }
 
             }

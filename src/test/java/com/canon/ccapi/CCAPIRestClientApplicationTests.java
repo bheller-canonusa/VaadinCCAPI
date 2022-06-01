@@ -1,6 +1,7 @@
 package com.canon.ccapi;
 
 import com.canon.ccapi.rest.consumer.RestConsumer;
+import com.canon.ccapi.rest.exceptions.Non200ReturnException;
 import com.canon.ccapi.rest.interfaces.CCAPIPojos;
 import com.canon.ccapi.rest.model.ErrorMessage;
 import com.canon.ccapi.rest.model.liveview.LiveViewImage;
@@ -85,12 +86,19 @@ public class CCAPIRestClientApplicationTests {
      //   }
 */
 
-       // LiveViewImage test = new LiveViewImage();
-        BatteryStatus b = new BatteryStatus();
+        LiveViewImage test = new LiveViewImage();
+        //BatteryStatus b = new BatteryStatus();
         //BatteryStatus bb  = restconsume.makeCall(b).getRegular();
-        LiveViewImage out = restconsume.makeCall(b).getRegular();
+        try {
+            LiveViewImage out = restconsume.makeCall(test).getRegular();
 
-        System.out.println(out.getMessage());
+            System.out.println(out.getMessage());
+        }
+        catch(Non200ReturnException e){
+            ErrorMessage ee = e.getErrorMessage();
+            System.out.println("Error message is:"+ee);
+        }
+
       //  System.out.println(restconsume.makeCall(new LiveViewToggle("off","off")));
 
     }
