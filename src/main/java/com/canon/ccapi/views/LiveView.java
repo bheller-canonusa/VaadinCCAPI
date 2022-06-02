@@ -18,6 +18,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.radiobutton.RadioGroupVariant;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.InputStreamFactory;
@@ -52,6 +53,8 @@ public class LiveView extends VerticalLayout {
 
     private Image liveviewimage;
 
+    private AtomicBoolean shouldnotify;
+
     public LiveView() {
 
         setId("liveview-view");
@@ -60,16 +63,31 @@ public class LiveView extends VerticalLayout {
 
         liveviewimage = new Image();
 
+        shouldnotify = new AtomicBoolean(false);
+
         createButtons();
         createDropDowns();
         createRadioButton();
 
         vcapturelayout = new VerticalLayout();
+        radiogroupaf.setWidth("100%");
+        captureimage.setWidth("100%");
         vcapturelayout.add(radiogroupaf,captureimage);
-        vcapturelayout.setHorizontalComponentAlignment(Alignment.BASELINE);
+        vcapturelayout.setPadding(false);
+        vcapturelayout.setSpacing(false);
+        vcapturelayout.setHorizontalComponentAlignment(Alignment.END);
+
 
 
         HorizontalLayout hl = new HorizontalLayout();
+        hl.setWidth("100%");
+
+        liveviewbutton.setWidth("50%");
+        vcapturelayout.setWidth("50%");
+        sizeofimage.setWidth("50%");
+        displayonoff.setWidth("50%");
+
+
         hl.add(liveviewbutton,vcapturelayout,sizeofimage,displayonoff);
         hl.setSpacing(true);
         hl.setVerticalComponentAlignment(Alignment.END,liveviewbutton,vcapturelayout,sizeofimage,displayonoff);
@@ -80,12 +98,27 @@ public class LiveView extends VerticalLayout {
     }
 
 
+    public AtomicBoolean getShouldnotify(){
+        return shouldnotify;
+    }
+
+    private boolean getAFValue(){
+        if (radiogroupaf.getValue().equals(null)){
+            return true;
+        }
+        if(radiogroupaf.getValue().equals("true")) {
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
     private void createRadioButton(){
         radiogroupaf = new RadioButtonGroup<>();
         VaadinUtils.createRadioGroup(radiogroupaf,new StillImageCapture(),"af");
         radiogroupaf.setLabel("AF");
-
-
+        radiogroupaf.setValue("true");
     }
 
     public Boolean getLiveViewState(){return liveviewstart;}
@@ -120,17 +153,6 @@ public class LiveView extends VerticalLayout {
 
     }
 
-    private Boolean getCurrentLiveViewState() {
-
-        LiveViewImage test = new LiveViewImage();
-
-         LiveViewImage out = myrestconsumer.makeCall(test).getRegular();
-
-        ImageReloader im = new ImageReloader(UI.getCurrent(), this, myrestconsumer);
-
-        return false;
-    }
-
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
@@ -147,7 +169,7 @@ public class LiveView extends VerticalLayout {
                 try {
                     myrestconsumer.makeCall(new LiveViewToggle((sizeofimage.getValue()==null)?"small":displayonoff.getValue(),"on"));
                 } catch (Exception ee) {
-                    Notification.show("General Error, See Logs");
+                    Notification.show("General Error, See Logs ");
                     ee.printStackTrace();
                 }
 
@@ -172,19 +194,33 @@ public class LiveView extends VerticalLayout {
 
         });
 
-
-
         captureimage = new Button("Capture Image");
 
         captureimage.addClickListener(c->{
 
             try{
+
+            if(getLiveViewState()) {
+                getShouldnotify().set(true);
+            }
+
                 myrestconsumer.makeCall(new StillImageCapture(true));
             }
             catch (Non200ReturnException ee){
                 ErrorMessage em = ee.getErrorMessage();
-                Notification.show("ERROR: "+em.getMessage());
+                Notification.show("ERROR: "+em.getMessage()+"\n CODE: "+em.getErrorcode());
             }
+
+            if (getLiveViewState()){
+
+                    getShouldnotify().set(false);
+                    synchronized (irl) {
+                       irl.notify();
+                    }
+
+
+            }
+
 
         });
 
@@ -215,6 +251,7 @@ public class LiveView extends VerticalLayout {
             flag.set(false);
         }
 
+
         @Override
         public void run() {
             System.out.println("Live View Thread Running Name-->" + Thread.currentThread().getName() + "<--");
@@ -244,13 +281,28 @@ public class LiveView extends VerticalLayout {
                         view.liveviewimage.setSrc(streamresource);
                         //ui.push();
                     });
+
+                    if (view.getShouldnotify().get()) {
+                      synchronized (this){
+                          System.out.println(Thread.currentThread().getName()+" Before Wait");
+                          wait();
+                          System.out.println(Thread.currentThread().getName()+" After Wait");
+                          try{
+                              Thread.currentThread().sleep(4000);
+                          }
+                          catch (InterruptedException e){
+                              e.printStackTrace();
+                          }
+                      }
+                    }
+
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 catch(Non200ReturnException e){
                     ErrorMessage em = e.getErrorMessage();
                     ui.access(()->{
-                       Notification.show("ERROR: "+em.getMessage());
+                       Notification.show("ERROR: "+em.getMessage()+"\n CODE: "+em.getErrorcode());
                        view.liveviewbutton.setText("Start Live View");
                        view.setLiveViewState(false);
                     });
@@ -262,8 +314,3 @@ public class LiveView extends VerticalLayout {
         }
     }
 }
-
-
-
-
-

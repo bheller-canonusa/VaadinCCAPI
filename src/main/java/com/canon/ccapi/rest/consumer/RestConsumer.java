@@ -157,7 +157,7 @@ public class RestConsumer {
             }
 
         }
-        catch(WebClientResponseException.ServiceUnavailable e){
+        catch(WebClientResponseException e){
             ErrorMessage errormessage= null;
             try {
                 errormessage= mapper.readValue(e.getResponseBodyAsString(), ErrorMessage.class);
@@ -168,6 +168,7 @@ public class RestConsumer {
 
             throw new Non200ReturnException(errormessage);
         }
+
 
 
 
