@@ -84,17 +84,23 @@ public class RestConsumer {
     }
 
 
+    public RegularCCAPIReturnObject makeCall(CCAPIPojos makecallobject){
+        return makeCall(makecallobject,null);
+    }
 
-    public RegularCCAPIReturnObject makeCall(CCAPIPojos makecallobject) {
 
-
+    public RegularCCAPIReturnObject makeCall(CCAPIPojos makecallobject,String modifyurl) {
         if (debug) {
-            logger.info("Rest call using POJO-->" + makecallobject.getClass() + "<--");
+            logger.info("Rest call using POJO-->" + makecallobject.getClass() + "<---->"+ makecallobject + "<--");
         }
 
         Class<? extends CCAPIPojos> clazz = makecallobject.getClass();
         RestVerbs verb = clazz.getAnnotation(RestCommand.class).restverb();
         String command = clazz.getAnnotation(RestCommand.class).restcommand();
+        if (modifyurl!=null){
+            command=command.replace("{?}",modifyurl);
+        }
+
         ResponseTypes type = clazz.getAnnotation(ResponseType.class).type();
 
         String postbodyvalues = null;
@@ -165,7 +171,9 @@ public class RestConsumer {
             catch (JsonProcessingException ee){
                logger.error("jsonprocessing->",ee);
             }
-
+            if (debug) {
+                logger.info("Error raw-->" + e + "<--");
+            }
             throw new Non200ReturnException(errormessage);
         }
 

@@ -7,28 +7,28 @@ import com.canon.ccapi.rest.model.ErrorMessage;
 public class RegularCCAPIReturnObject {
 
     private Object regular;
-    private ErrorMessage error;
+    //private ErrorMessage error;
 
 
     public RegularCCAPIReturnObject(Object regular) {
-        this.error=null;
+        //this.error=null;
         this.regular =  regular;
     }
 
 
 
-    public RegularCCAPIReturnObject(ErrorMessage e){
+ /*   public RegularCCAPIReturnObject(ErrorMessage e){
         this.error=e;
         this.regular=null;
-    }
+    }*/
 
-    public Boolean isError(){
+   /* public Boolean isError(){
        return error!=null;
-    }
+    }*/
 
-    public Boolean isRegular(){
+   /* public Boolean isRegular(){
      return regular!=null;
-    }
+    }*/
 
 
 
@@ -46,20 +46,20 @@ public class RegularCCAPIReturnObject {
     //we should only set regular if error is null
     public void setRegular(Object regular) {
 
-        if (error==null) {
+      //  if (error==null) {
             this.regular = regular;
-        }
-        else{
-            throw new InconsistantStateException("cannot set a regular object because error isn't null, error=>"+error);
-        }
+     //   }
+     //   else{
+     //       throw new InconsistantStateException("cannot set a regular object because error isn't null, error=>"+error);
+      //  }
 
     }
 
-    public ErrorMessage getError() {
+  /*  public ErrorMessage getError() {
         return error;
-    }
+    }*/
 
-    public void setError(ErrorMessage error) {
+  /*  public void setError(ErrorMessage error) {
 
         if (regular==null){
             this.error=error;
@@ -67,6 +67,6 @@ public class RegularCCAPIReturnObject {
         else{
             throw new InconsistantStateException("cannot set an error object because regular isn't null, regular=>"+regular);
         }
-    }
+    }*/
 
 }

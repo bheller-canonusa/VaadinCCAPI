@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 @Route(value="live-view",layout=MainView.class)
@@ -51,6 +52,8 @@ public class LiveView extends VerticalLayout {
 
     private Boolean liveviewstart;
 
+    private AtomicLong picturetaken;
+
     private Image liveviewimage;
 
     private AtomicBoolean shouldnotify;
@@ -64,6 +67,8 @@ public class LiveView extends VerticalLayout {
         liveviewimage = new Image();
 
         shouldnotify = new AtomicBoolean(false);
+
+        picturetaken = new AtomicLong(0);
 
         createButtons();
         createDropDowns();
@@ -97,6 +102,7 @@ public class LiveView extends VerticalLayout {
 
     }
 
+    public AtomicLong getPictureTime(){return picturetaken;}
 
     public AtomicBoolean getShouldnotify(){
         return shouldnotify;
@@ -119,6 +125,9 @@ public class LiveView extends VerticalLayout {
         VaadinUtils.createRadioGroup(radiogroupaf,new StillImageCapture(),"af");
         radiogroupaf.setLabel("AF");
         radiogroupaf.setValue("true");
+        radiogroupaf.addValueChangeListener(e->{
+
+        });
     }
 
     public Boolean getLiveViewState(){return liveviewstart;}
@@ -167,7 +176,7 @@ public class LiveView extends VerticalLayout {
 
                 liveviewbutton.setText("Stop Live View");
                 try {
-                    myrestconsumer.makeCall(new LiveViewToggle((sizeofimage.getValue()==null)?"small":displayonoff.getValue(),"on"));
+                    myrestconsumer.makeCall(new LiveViewToggle((sizeofimage.getValue()==null)?"small":sizeofimage.getValue(),"on"));
                 } catch (Exception ee) {
                     Notification.show("General Error, See Logs ");
                     ee.printStackTrace();
@@ -201,29 +210,28 @@ public class LiveView extends VerticalLayout {
             try{
 
             if(getLiveViewState()) {
-                getShouldnotify().set(true);
+
+                getPictureTime().set(System.currentTimeMillis());
+                //getShouldnotify().set(true);
+
+
             }
 
-                myrestconsumer.makeCall(new StillImageCapture(true));
+                myrestconsumer.makeCall(new StillImageCapture(getAFValue()));
             }
             catch (Non200ReturnException ee){
                 ErrorMessage em = ee.getErrorMessage();
                 Notification.show("ERROR: "+em.getMessage()+"\n CODE: "+em.getErrorcode());
             }
 
-            if (getLiveViewState()){
+        //    if (getLiveViewState()){
 
-                    getShouldnotify().set(false);
-                    synchronized (irl) {
-                       irl.notify();
-                    }
-
-
-            }
-
-
+               //     getShouldnotify().set(false);
+                  //  synchronized (irl) {
+                  //     irl.notify();
+                  //  }
+         //   }
         });
-
     }
 
     private static class ImageReloader extends Thread {
@@ -283,34 +291,87 @@ public class LiveView extends VerticalLayout {
                     });
 
                     if (view.getShouldnotify().get()) {
-                      synchronized (this){
-                          System.out.println(Thread.currentThread().getName()+" Before Wait");
-                          wait();
-                          System.out.println(Thread.currentThread().getName()+" After Wait");
-                          try{
-                              Thread.currentThread().sleep(4000);
-                          }
-                          catch (InterruptedException e){
-                              e.printStackTrace();
-                          }
-                      }
+                        System.out.println("Picture taken, Sleeping");
+                            Thread.currentThread().sleep(2000);
+
+                        System.out.println("Picture taken, waking, should I sleep more?");
+
                     }
+
+
+                   // if (view.getShouldnotify().get()) {
+                     // synchronized (this){
+                       //   System.out.println(Thread.currentThread().getName()+" Before Wait");
+                       //   wait();
+                       //   System.out.println(Thread.currentThread().getName()+" After Wait");
+
+                      //    try{
+                      //        Thread.currentThread().sleep(500);
+                      //    }
+                      //    catch (InterruptedException e){
+                     //         e.printStackTrace();
+                      //    }
+                     //     waitUntilCameraNotBusy();
+
+                          //try{
+                          //    Thread.currentThread().sleep(4000);
+                         // }
+                         // catch (InterruptedException e){
+                         //     e.printStackTrace();
+                        //  }
+                     // }
+                  //  }
 
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 catch(Non200ReturnException e){
-                    ErrorMessage em = e.getErrorMessage();
-                    ui.access(()->{
-                       Notification.show("ERROR: "+em.getMessage()+"\n CODE: "+em.getErrorcode());
-                       view.liveviewbutton.setText("Start Live View");
-                       view.setLiveViewState(false);
-                    });
-                    endLiveView();
+                    //need a guard against error messages showing up after an image is captured because
+                    //camera is not in ready state to keep live view images showing...usually device busy messages
+
+                    long delta = System.currentTimeMillis() - view.getPictureTime().get();
+                    System.out.println("delta (outside)->"+delta);
+                    if (delta > 10000l) {
+                        System.out.println("delta (inside)->"+delta);
+                        ErrorMessage em = e.getErrorMessage();
+                        ui.access(() -> {
+                            Notification.show("ERROR: " + em.getMessage() + "\n CODE: " + em.getErrorcode());
+                            view.liveviewbutton.setText("Start Live View");
+                            view.setLiveViewState(false);
+                        });
+                        endLiveView();
+                    }
+
                 }
 
             }
             System.out.println("Live View Thread Ending Name-->" + Thread.currentThread().getName() + "<--");
         }
+
+
+        private void waitUntilCameraNotBusy()  {
+
+            System.out.println("Entering waituntilcameranotbusy");
+            try {
+                while (true) {
+                    Thread.sleep(1000);
+                    try {
+                        LiveViewImage im = myrestconsumer.makeCall(new LiveViewImage()).getRegular();
+                        return;
+                    }
+                    catch(Non200ReturnException e){
+                        System.out.println("Not Yet Ready");
+                    }
+
+                }
+            }
+            catch (InterruptedException e){
+                e.printStackTrace();
+            }
+
+            System.out.println("Leaving waituntilcameranotbusy");
+        }
+
+
     }
 }

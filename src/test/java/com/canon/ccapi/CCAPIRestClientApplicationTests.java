@@ -3,10 +3,12 @@ package com.canon.ccapi;
 import com.canon.ccapi.rest.consumer.RestConsumer;
 import com.canon.ccapi.rest.exceptions.Non200ReturnException;
 import com.canon.ccapi.rest.interfaces.CCAPIPojos;
+import com.canon.ccapi.rest.interfaces.RestCommand;
 import com.canon.ccapi.rest.model.ErrorMessage;
 import com.canon.ccapi.rest.model.liveview.LiveViewImage;
 import com.canon.ccapi.rest.model.liveview.LiveViewToggle;
 import com.canon.ccapi.rest.model.status.BatteryStatus;
+import com.canon.ccapi.rest.model.storage.StorageName;
 import com.canon.ccapi.rest.util.ReflectionHelper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,7 +87,7 @@ public class CCAPIRestClientApplicationTests {
      //       e.printStackTrace();
      //   }
 */
-
+/*
         LiveViewImage test = new LiveViewImage();
         //BatteryStatus b = new BatteryStatus();
         //BatteryStatus bb  = restconsume.makeCall(b).getRegular();
@@ -98,8 +100,30 @@ public class CCAPIRestClientApplicationTests {
             ErrorMessage ee = e.getErrorMessage();
             System.out.println("Error message is:"+ee);
         }
-
+*/
       //  System.out.println(restconsume.makeCall(new LiveViewToggle("off","off")));
+
+        StorageName sn = restconsume.makeCall(new StorageName(),"").getRegular();
+        String restcommand = sn.getClass().getAnnotation(RestCommand.class).restcommand();
+
+        System.out.println(restcommand);
+
+        //assuming only one storage url
+        String[] ss = sn.getUrl();
+        String storageurl = ss[0];
+
+
+
+
+
+
+
+
+
+        for (String s:ss){
+            System.out.println(s);
+        }
+
 
     }
 
